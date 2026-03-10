@@ -1,0 +1,9 @@
+services:
+  gos:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    platform: linux/amd64
+    working_dir: /work
+    volumes:
+      - ./:/work
