@@ -27,9 +27,9 @@ set(LDFLAGS
 )
 
 set(SRC_BOOT ${CMAKE_SOURCE_DIR}/src/uefi/boot/bootx64.c)
-set(OBJ_BOOT ${CMAKE_BINARY_DIR}/build/bootx64.o)
-set(SO_BOOT  ${CMAKE_BINARY_DIR}/build/bootx64.so)
-set(EFI_BOOT ${CMAKE_BINARY_DIR}/build/BOOTX64.EFI)
+set(OBJ_BOOT ${CMAKE_BINARY_DIR}/bootx64.o)
+set(SO_BOOT  ${CMAKE_BINARY_DIR}/bootx64.so)
+set(EFI_BOOT ${CMAKE_BINARY_DIR}/BOOTX64.EFI)
 
 add_custom_command(
     OUTPUT ${OBJ_BOOT}
@@ -45,9 +45,17 @@ add_custom_command(
 
 add_custom_command(
     OUTPUT ${SO_BOOT}
-    COMMAND ld ${LDFLAGS}
+    COMMAND gcc
+            -nostdlib
+            -Wl,-znocombreloc
+            -Wl,-T,/usr/lib/elf_x86_64_efi.lds
+            -shared
+            -Wl,-Bsymbolic
+            -Wl,--defsym=EFI_SUBSYSTEM=10
+            /usr/lib/crt0-efi-x86_64.o
             ${OBJ_BOOT}
             -o ${SO_BOOT}
+            -L/usr/lib
             -lefi
             -lgnuefi
     DEPENDS ${OBJ_BOOT}
@@ -75,9 +83,9 @@ add_custom_command(
 add_custom_target(bootloader ALL DEPENDS ${EFI_BOOT})
 
 #set(SRC_KERNEL ${CMAKE_SOURCE_DIR}/src/kernel/kernel.c)
-#set(OBJ_KERNEL ${CMAKE_BINARY_DIR}/build/kernel.o)
-#set(SO_KERNEL  ${CMAKE_BINARY_DIR}/build/kernel.so)
-#set(EFI_KERNEL ${CMAKE_BINARY_DIR}/build/KERNEL.EFI)
+#set(OBJ_KERNEL ${CMAKE_BINARY_DIR}/kernel.o)
+#set(SO_KERNEL  ${CMAKE_BINARY_DIR}/kernel.so)
+#set(EFI_KERNEL ${CMAKE_BINARY_DIR}/KERNEL.EFI)
 
 #add_custom_command(
 #    OUTPUT ${OBJ_KERNEL}

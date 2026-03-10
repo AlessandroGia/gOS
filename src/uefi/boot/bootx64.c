@@ -4,7 +4,8 @@
 
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 {
-    InitializeLibrary(ImageHandle, SystemTable);
+    InitializeLib(ImageHandle, SystemTable);
     Print(L"Hello, gOS!\n");
+
     return EFI_SUCCESS;
 }
