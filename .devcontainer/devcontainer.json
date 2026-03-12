@@ -1,0 +1,15 @@
+{
+    "name": "UEFI Dev",
+    "image": "gos-dev-amd64",
+    "runArgs": [
+        "--platform=linux/amd64"
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cpptools"
+            ]
+        }
+    },
+    "remoteUser": "root"
+}

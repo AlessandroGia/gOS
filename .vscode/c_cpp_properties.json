@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "Linux-UEFI",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/usr/include",
+                "/usr/include/efi"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "intelliSenseMode": "linux-gcc-x64",
+            "defines": [
+                "__x86_64__"
+            ]
+        }
+    ],
+    "version": 4
+}

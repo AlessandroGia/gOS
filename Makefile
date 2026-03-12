@@ -12,11 +12,16 @@ else
     endif
 endif
 
+dev-build:
+    docker build --platform=linux/amd64 -f .devcontainer/dev.Dockerfile -t gos-dev-amd64 .
+
 image:
 	docker compose build
 
 build:
 	docker compose run --rm gos bash ./scripts/build.sh
+
+br: build run
 
 run:
 	$(RUN_CMD)
