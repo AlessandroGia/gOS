@@ -3,9 +3,12 @@
         {
             "name": "Linux-UEFI",
             "includePath": [
-                "${workspaceFolder}/**",
+                "${workspaceFolder}",
+                "${workspaceFolder}/src",
                 "/usr/include",
-                "/usr/include/efi"
+                "/usr/include/efi",
+                "/usr/include/efi/x86_64",
+                "/usr/include/efi/protocol"
             ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",

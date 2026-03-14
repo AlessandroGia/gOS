@@ -2,7 +2,11 @@
 set -e
 
 mkdir -p testfs/EFI/BOOT
-cp build/BOOTX64.EFI testfs/EFI/BOOT/BOOTX64.EFI
+cp build/BootX64.efi testfs/EFI/BOOT/BootX64.efi
+cp build/OsLoader.efi testfs/EFI/BOOT/OsLoader.efi
+
+cp build/kernel.elf testfs/kernel.elf
+cp build/kernel.bin testfs/kernel.bin
 
 qemu-system-x86_64 \
   -machine q35 \

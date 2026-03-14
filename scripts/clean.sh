@@ -2,4 +2,4 @@
 set -e
 
 rm -rf build
-rm -f testfs/EFI/BOOT/BOOTX64.EFI
+rm -rf testfs
