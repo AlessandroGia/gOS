@@ -21,3 +21,16 @@ EFI_INPUT_KEY get_key(EFI_SYSTEM_TABLE *SystemTable)
 
     return key;
 }
+
+void wait_for_enter(EFI_SYSTEM_TABLE *SystemTable)
+{
+    EFI_INPUT_KEY key;
+
+    for (;;)
+    {
+        key = get_key(SystemTable);
+
+        if (key.UnicodeChar == CHAR_CARRIAGE_RETURN)
+            break;
+    }
+}

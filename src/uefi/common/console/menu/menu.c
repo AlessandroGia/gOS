@@ -2,39 +2,9 @@
 #include <efi/efilib.h>
 
 #include "menu.h"
-#include "actions.h"
 
 #include "uefi/common/console/screen.h"
 #include "uefi/common/console/input.h"
-#include "uefi/common/image/image.h"
-
-MenuEntry menu_entries[] =
-    {
-        {L"Load Kernel", action_load_and_start_image, L"\\EFI\\BOOT\\OsLoader.efi"},
-        {L"Reboot", action_reboot, NULL},
-        {L"Firmware", action_exit, NULL},
-        {L"Shutdown", action_shutdown, NULL}};
-
-MenuEntry *get_boot_menu_entries(void)
-{
-    return menu_entries;
-}
-
-UINTN get_boot_menu_entry_count(void)
-{
-    return sizeof(menu_entries) / sizeof(menu_entries[0]);
-}
-
-EFI_STATUS execute_menu_entry(
-    MenuEntry *entry,
-    EFI_HANDLE ImageHandle,
-    EFI_SYSTEM_TABLE *SystemTable)
-{
-    if (entry == NULL || entry->action == NULL)
-        return EFI_INVALID_PARAMETER;
-
-    return entry->action(ImageHandle, SystemTable, entry->context);
-}
 
 static void draw_menu(
     EFI_SYSTEM_TABLE *SystemTable,
@@ -59,20 +29,22 @@ static void draw_menu(
     Print(L"\r\nUse Up/Down and Enter.\r\n");
 }
 
-EFI_STATUS run_menu(
+static EFI_STATUS menu(
     EFI_HANDLE ImageHandle,
     EFI_SYSTEM_TABLE *SystemTable,
     const CHAR16 *title,
     MenuEntry *entries,
     UINTN entry_count,
-    UINTN *selected_index)
+    UINTN *selected_index,
+    BOOLEAN escape_to_exit,
+    BOOLEAN *flag_exit)
 {
     EFI_INPUT_KEY key;
     UINTN selected = 0;
 
     (void)ImageHandle;
 
-    if (SystemTable == NULL || title == NULL || entries == NULL || entry_count == 0 || selected_index == NULL)
+    if (SystemTable == NULL || title == NULL || entries == NULL || entry_count == 0 || selected_index == NULL || flag_exit == NULL)
         return EFI_INVALID_PARAMETER;
 
     for (;;)
@@ -95,6 +67,15 @@ EFI_STATUS run_menu(
                     selected++;
                 break;
 
+            case SCAN_ESC:
+                if (escape_to_exit)
+                {
+                    *flag_exit = TRUE;
+                    clear_screen(SystemTable);
+                    return EFI_SUCCESS;
+                }
+                break;
+
             default:
                 break;
             }
@@ -105,6 +86,7 @@ EFI_STATUS run_menu(
             {
             case CHAR_CARRIAGE_RETURN:
                 *selected_index = selected;
+                clear_screen(SystemTable);
                 return EFI_SUCCESS;
 
             default:
@@ -112,4 +94,36 @@ EFI_STATUS run_menu(
             }
         }
     }
+}
+
+static EFI_STATUS execute_menu_entry(
+    MenuEntry *entry,
+    EFI_HANDLE ImageHandle,
+    EFI_SYSTEM_TABLE *SystemTable)
+{
+    if (entry == NULL || entry->action == NULL)
+        return EFI_INVALID_PARAMETER;
+
+    return entry->action(ImageHandle, SystemTable, entry->context);
+}
+
+EFI_STATUS run_menu(
+    EFI_HANDLE ImageHandle,
+    EFI_SYSTEM_TABLE *SystemTable,
+    const CHAR16 *title,
+    MenuEntry *entries,
+    UINTN entry_count,
+    BOOLEAN escape_to_exit)
+{
+    UINTN selected_index = 0;
+    BOOLEAN flag_exit = FALSE;
+
+    while (TRUE)
+    {
+        menu(ImageHandle, SystemTable, title, entries, entry_count, &selected_index, escape_to_exit, &flag_exit);
+        if (escape_to_exit && flag_exit)
+            return EFI_SUCCESS;
+        execute_menu_entry(&entries[selected_index], ImageHandle, SystemTable);
+    }
+    return EFI_SUCCESS;
 }

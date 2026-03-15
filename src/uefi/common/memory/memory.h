@@ -15,5 +15,6 @@ typedef struct memory_map
 typedef MEMORY_MAP *PMEMORY_MAP;
 
 EFI_STATUS get_memory_map(EFI_SYSTEM_TABLE *SystemTable, PMEMORY_MAP *mem_map);
+void prov(EFI_SYSTEM_TABLE *SystemTable);
 
 #endif

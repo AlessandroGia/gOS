@@ -88,13 +88,13 @@ add_uefi_app (
     bootx64
     BootX64.efi
     ${CMAKE_SOURCE_DIR}/src/uefi/boot/bootx64.c
+    ${CMAKE_SOURCE_DIR}/src/uefi/common/console/menu/menu.c
     ${CMAKE_SOURCE_DIR}/src/uefi/common/memory/memory.c
     ${CMAKE_SOURCE_DIR}/src/uefi/common/helper/helper.c
     ${CMAKE_SOURCE_DIR}/src/uefi/common/console/input.c
     ${CMAKE_SOURCE_DIR}/src/uefi/common/image/image.c
     ${CMAKE_SOURCE_DIR}/src/uefi/common/console/screen.c
     ${CMAKE_SOURCE_DIR}/src/uefi/common/power/power.c
-    ${CMAKE_SOURCE_DIR}/src/uefi/boot/menu/menu.c
     ${CMAKE_SOURCE_DIR}/src/uefi/boot/menu/actions.c
 )
 

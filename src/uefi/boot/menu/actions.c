@@ -1,10 +1,45 @@
 #include <efi/efi.h>
+#include <efi/efilib.h>
 
 #include "actions.h"
-#include "menu.h"
 
+#include "uefi/common/console/menu/menu.h"
+#include "uefi/common/console/screen.h"
 #include "uefi/common/image/image.h"
 #include "uefi/common/power/power.h"
+#include "uefi/common/memory/memory.h"
+
+static MenuEntry menu_entries[] =
+    {
+        {L"Load Kernel", action_load_and_start_image, L"\\EFI\\BOOT\\OsLoader.efi"},
+        {L"Memory Map", action_memory_map, NULL},
+        {L"Firmware", action_exit, NULL},
+        {L"Reboot", action_reboot, NULL},
+        {L"Shutdown", action_shutdown, NULL}};
+
+MenuEntry *get_boot_menu_entries(void)
+{
+    return menu_entries;
+}
+
+UINTN get_boot_menu_entry_count(void)
+{
+    return sizeof(menu_entries) / sizeof(menu_entries[0]);
+}
+
+EFI_STATUS action_memory_map(
+    EFI_HANDLE ImageHandle,
+    EFI_SYSTEM_TABLE *SystemTable,
+    void *context)
+{
+    (VOID) ImageHandle;
+    (VOID) context;
+
+    prov(SystemTable);
+    press_enter_to_continue(SystemTable);
+
+    return EFI_SUCCESS;
+}
 
 EFI_STATUS action_load_and_start_image(
     EFI_HANDLE ImageHandle,
