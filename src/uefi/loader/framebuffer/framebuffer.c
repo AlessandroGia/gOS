@@ -1,6 +1,10 @@
 #include <efi/efi.h>
 
+#include "framebuffer.h"
+
 #include "shared/bootinfo.h"
+
+#include "uefi/common/log/log.h"
 
 EFI_STATUS get_framebuffer_info(
     EFI_SYSTEM_TABLE *st,

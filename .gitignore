@@ -15,6 +15,7 @@ build
 testfs
 !assets/.gitkeep
 teory.txt
+report.txt
 
 # CLion
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

@@ -1,8 +1,10 @@
 #include <efi/efi.h>
 #include <efi/efilib.h>
 
-#include "uefi/common/log/log.h"
+#include "kernel.h"
+
 #include "uefi/common/helper/helper.h"
+#include "uefi/common/log/log.h"
 
 void copy_kernel_to_address(
     VOID *kernel_buffer,

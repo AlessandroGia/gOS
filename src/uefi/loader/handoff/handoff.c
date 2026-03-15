@@ -1,5 +1,7 @@
 #include <efi/efi.h>
 
+#include "handoff.h"
+
 #include "shared/bootinfo.h"
 
 #include "uefi/common/memory/memory.h"
@@ -13,11 +15,15 @@ EFI_STATUS exit_boot_services_with_retry(
 {
     EFI_STATUS Status;
 
+    LOG_ERROR(L"Attempting to exit boot services with MapKey: %u", (*mem_map)->MapKey);
+
     if (EFI_ERROR(get_memory_map(SystemTable, mem_map)))
     {
         LOG_ERROR(L"Memory map retrieval failed during retry.");
         return EFI_LOAD_ERROR;
     }
+
+    LOG_ERROR(L"Attempting to exit boot services with MapKey: %u", (*mem_map)->MapKey);
 
     boot_info->memory_map = (*mem_map)->MemoryMap;
     boot_info->memory_map_size = (*mem_map)->MemoryMapSize;

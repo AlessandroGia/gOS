@@ -3,8 +3,8 @@
 
 #include "memory.h"
 
-#include "uefi/common/log/log.h"
 #include "uefi/common/helper/helper.h"
+#include "uefi/common/log/log.h"
 
 EFI_STATUS get_memory_map(EFI_SYSTEM_TABLE *SystemTable, PMEMORY_MAP *mem_map)
 {
@@ -28,18 +28,19 @@ EFI_STATUS get_memory_map(EFI_SYSTEM_TABLE *SystemTable, PMEMORY_MAP *mem_map)
             goto cleanup;
         }
         allocated_struct = TRUE;
+
+        (*mem_map)->MemoryMap = NULL;
+        (*mem_map)->MemoryMapSize = 0;
+        (*mem_map)->MapKey = 0;
+        (*mem_map)->DescriptorSize = 0;
+        (*mem_map)->DescriptorVersion = 0;
     }
 
     if ((*mem_map)->MemoryMap != NULL)
     {
-
         free_pool(SystemTable, (*mem_map)->MemoryMap);
         (*mem_map)->MemoryMap = NULL;
     }
-    (*mem_map)->MemoryMapSize = 0;
-    (*mem_map)->MapKey = 0;
-    (*mem_map)->DescriptorSize = 0;
-    (*mem_map)->DescriptorVersion = 0;
 
     Status = uefi_call_wrapper(
         SystemTable->BootServices->GetMemoryMap, 5,

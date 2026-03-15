@@ -5,8 +5,8 @@
 #include "shared/bootinfo.h"
 
 #include "uefi/common/memory/memory.h"
-#include "uefi/common/log/log.h"
 #include "uefi/common/helper/helper.h"
+#include "uefi/common/log/log.h"
 
 #include "uefi/loader/framebuffer/framebuffer.h"
 #include "uefi/loader/kernel/bin/kernel.h"
@@ -20,17 +20,12 @@ typedef void (*KernelEntry)(BootInfo *boot_info);
 EFIMAIN efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 {
     EFI_STATUS Status;
-
     VOID *KernelBuffer = NULL;
     UINTN KernelSize = 0;
-
     PMEMORY_MAP mem_map = NULL;
-
     BootInfo BootInfoData = {0};
 
     InitializeLib(ImageHandle, SystemTable);
-
-    LOG_INFO("OS loader started.");
 
     Status = get_framebuffer_info(SystemTable, &BootInfoData);
     if (EFI_ERROR(Status))
@@ -60,6 +55,7 @@ EFIMAIN efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
         goto cleanup;
     }
 
+    exit_boot_services_with_retry(ImageHandle, SystemTable, &mem_map, &BootInfoData);
     jump_to_kernel((VOID *)KERNEL_LOAD_ADDRESS, &BootInfoData);
 
     for (;;)

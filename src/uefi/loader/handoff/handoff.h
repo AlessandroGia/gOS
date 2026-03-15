@@ -10,7 +10,7 @@
 EFI_STATUS exit_boot_services_with_retry(
     EFI_HANDLE ImageHandle,
     EFI_SYSTEM_TABLE *SystemTable,
-    PMEMORY_MAP mem_map,
+    PMEMORY_MAP *mem_map,
     BootInfo *boot_info);
 
 void jump_to_kernel(

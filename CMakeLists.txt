@@ -89,7 +89,13 @@ add_uefi_app (
     BootX64.efi
     ${CMAKE_SOURCE_DIR}/src/uefi/boot/bootx64.c
     ${CMAKE_SOURCE_DIR}/src/uefi/common/memory/memory.c
-    ${CMAKE_SOURCE_DIR}/src/uefi/common/input/input.c
+    ${CMAKE_SOURCE_DIR}/src/uefi/common/helper/helper.c
+    ${CMAKE_SOURCE_DIR}/src/uefi/common/console/input.c
+    ${CMAKE_SOURCE_DIR}/src/uefi/common/image/image.c
+    ${CMAKE_SOURCE_DIR}/src/uefi/common/console/screen.c
+    ${CMAKE_SOURCE_DIR}/src/uefi/common/power/power.c
+    ${CMAKE_SOURCE_DIR}/src/uefi/boot/menu/menu.c
+    ${CMAKE_SOURCE_DIR}/src/uefi/boot/menu/actions.c
 )
 
 add_uefi_app (
@@ -97,6 +103,10 @@ add_uefi_app (
     OsLoader.efi
     ${CMAKE_SOURCE_DIR}/src/uefi/loader/osloader.c
     ${CMAKE_SOURCE_DIR}/src/uefi/common/memory/memory.c
+    ${CMAKE_SOURCE_DIR}/src/uefi/common/helper/helper.c
+    ${CMAKE_SOURCE_DIR}/src/uefi/loader/framebuffer/framebuffer.c
+    ${CMAKE_SOURCE_DIR}/src/uefi/loader/handoff/handoff.c
+    ${CMAKE_SOURCE_DIR}/src/uefi/loader/kernel/bin/kernel.c
 )
 
 set(CFLAGS_KERNEL
