@@ -7,6 +7,7 @@
 #include "uefi/common/console/menu/menu.h"
 
 #include "uefi/boot/menu/actions.h"
+#include "uefi/common/memory/memory.h"
 
 #define BOOT_MENU_NAME L"gOS Boot Menu"
 
@@ -20,13 +21,18 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 
     InitializeLib(ImageHandle, SystemTable);
 
+    MemoryLeakContext mem_leak_ctx = {0};
+    check_memory_leak(SystemTable, &mem_leak_ctx, FALSE);
+    menu_entries[1].context = &mem_leak_ctx;
+
     Status = run_menu(
         ImageHandle,
         SystemTable,
         BOOT_MENU_NAME,
         menu_entries,
         menu_entry_count,
-        FALSE);
+        FALSE,
+        20);
 
     return Status;
 }

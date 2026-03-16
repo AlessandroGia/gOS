@@ -11,14 +11,29 @@ static void draw_menu(
     const CHAR16 *title,
     MenuEntry *entries,
     UINTN entry_count,
-    UINTN selected)
+    UINTN selected,
+    UINTN *start_menu,
+    UINTN *end_menu)
 {
 
     clear_screen(SystemTable);
 
     Print(L"%s\r\n\r\n", title);
 
-    for (UINTN i = 0; i < entry_count; i++)
+    if (*end_menu > entry_count)
+        *end_menu = entry_count;
+
+    if (selected > (*end_menu - 1))
+    {
+        *end_menu += 1;
+        *start_menu += 1;
+    }
+    if (selected < *start_menu)
+    {
+        *start_menu -= 1;
+        *end_menu -= 1;
+    }
+    for (UINTN i = *start_menu; i < *end_menu; i++)
     {
         if (i == selected)
             Print(L"> %s\r\n", entries[i].label);
@@ -37,9 +52,12 @@ static EFI_STATUS menu(
     UINTN entry_count,
     UINTN *selected_index,
     BOOLEAN escape_to_exit,
-    BOOLEAN *flag_exit)
+    BOOLEAN *flag_exit,
+    UINTN window)
 {
     EFI_INPUT_KEY key;
+    UINTN start_menu = 0;
+    UINTN end_menu = entry_count < window ? entry_count : window;
     UINTN selected = 0;
 
     (void)ImageHandle;
@@ -49,7 +67,7 @@ static EFI_STATUS menu(
 
     for (;;)
     {
-        draw_menu(SystemTable, title, entries, entry_count, selected);
+        draw_menu(SystemTable, title, entries, entry_count, selected, &start_menu, &end_menu);
 
         key = get_key(SystemTable);
 
@@ -113,14 +131,15 @@ EFI_STATUS run_menu(
     const CHAR16 *title,
     MenuEntry *entries,
     UINTN entry_count,
-    BOOLEAN escape_to_exit)
+    BOOLEAN escape_to_exit,
+    UINTN window)
 {
     UINTN selected_index = 0;
     BOOLEAN flag_exit = FALSE;
 
     while (TRUE)
     {
-        menu(ImageHandle, SystemTable, title, entries, entry_count, &selected_index, escape_to_exit, &flag_exit);
+        menu(ImageHandle, SystemTable, title, entries, entry_count, &selected_index, escape_to_exit, &flag_exit, window);
         if (escape_to_exit && flag_exit)
             return EFI_SUCCESS;
         execute_menu_entry(&entries[selected_index], ImageHandle, SystemTable);

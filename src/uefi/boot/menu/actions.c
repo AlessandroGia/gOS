@@ -8,14 +8,15 @@
 #include "uefi/common/image/image.h"
 #include "uefi/common/power/power.h"
 #include "uefi/common/memory/memory.h"
+#include "uefi/memory_menu/memory_menu.h"
 
 static MenuEntry menu_entries[] =
     {
         {L"Load Kernel", action_load_and_start_image, L"\\EFI\\BOOT\\OsLoader.efi"},
-        {L"Memory Map", action_memory_map, NULL},
+        {L"Memory", action_memory_map, NULL},
         {L"Firmware", action_exit, NULL},
         {L"Reboot", action_reboot, NULL},
-        {L"Shutdown", action_shutdown, NULL}};
+        {L"Shutdown", action_shutdown, NULL}}; // MEMORY must be in index 1 for context passing
 
 MenuEntry *get_boot_menu_entries(void)
 {
@@ -32,11 +33,9 @@ EFI_STATUS action_memory_map(
     EFI_SYSTEM_TABLE *SystemTable,
     void *context)
 {
-    (VOID) ImageHandle;
-    (VOID) context;
+    MemoryLeakContext *mem_leak_ctx = (MemoryLeakContext *)context;
 
-    prov(SystemTable);
-    press_enter_to_continue(SystemTable);
+    show_memory_menu(ImageHandle, SystemTable, mem_leak_ctx);
 
     return EFI_SUCCESS;
 }

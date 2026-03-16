@@ -96,6 +96,7 @@ add_uefi_app (
     ${CMAKE_SOURCE_DIR}/src/uefi/common/console/screen.c
     ${CMAKE_SOURCE_DIR}/src/uefi/common/power/power.c
     ${CMAKE_SOURCE_DIR}/src/uefi/boot/menu/actions.c
+    ${CMAKE_SOURCE_DIR}/src/uefi/memory_menu/memory_menu.c
 )
 
 add_uefi_app (

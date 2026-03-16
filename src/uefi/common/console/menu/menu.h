@@ -19,6 +19,7 @@ EFI_STATUS run_menu(
     const CHAR16 *title,
     MenuEntry *entries,
     UINTN entry_count,
-    BOOLEAN escape_to_exit);
+    BOOLEAN escape_to_exit,
+    UINTN window);
 
 #endif

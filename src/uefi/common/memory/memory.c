@@ -6,7 +6,7 @@
 #include "uefi/common/helper/helper.h"
 #include "uefi/common/log/log.h"
 
-static CHAR16 *convert(UINTN byte)
+CHAR16 *convert_bytes_to_string(UINTN byte)
 {
     if (byte > 1024 * 1024 * 1024)
     {
@@ -34,59 +34,23 @@ static CHAR16 *convert(UINTN byte)
     }
 }
 
-void prov(EFI_SYSTEM_TABLE *SystemTable)
+UINTN get_total_memory_by_type(PMEMORY_MAP mem_map, EFI_MEMORY_TYPE type)
 {
-
-    /*
-    PMEMORY_MAP memory_map = NULL;
-
-    EFI_STATUS Status = get_memory_map(SystemTable, &memory_map);
-
-    EFI_MEMORY_DESCRIPTOR *desc = memory_map->MemoryMap;
-    UINTN count = memory_map->MemoryMapSize / memory_map->DescriptorSize;
-    UINT64 pages = 0;
-
-    Print(L"MemoryMapSize = %lu\r\n", memory_map->MemoryMapSize);
-    Print(L"DescriptorSize = %lu\r\n", memory_map->DescriptorSize);
-    Print(L"Count = %lu\r\n", count);
-
-    for (UINTN i = 0; i < count; i++)
-    {
-        Print(
-            L"[%lu] Type=%u Pages=%lu PhysicalStart=0x%lx\r\n",
-            i,
-            desc->Type,
-            desc->NumberOfPages,
-            desc->PhysicalStart);
-
-        pages += desc->NumberOfPages;
-        desc = (EFI_MEMORY_DESCRIPTOR *)((CHAR8 *)desc + memory_map->DescriptorSize);
-    }
-
-    Print(L"Total pages = %lu\r\n", pages);
-    Print(L"Total MiB = %lu\r\n", pages / 256);
-    */
-
-    PMEMORY_MAP mem_map = NULL;
     EFI_MEMORY_DESCRIPTOR *desc = NULL;
-
-    get_memory_map(SystemTable, &mem_map);
+    UINTN bytes = 0;
+    UINTN count = mem_map->MemoryMapSize / mem_map->DescriptorSize;
 
     desc = mem_map->MemoryMap;
 
-    UINTN bytes = 0;
-    UINTN pages = 0;
-
-    for (UINTN i = 0; i < mem_map->MemoryMapSize / mem_map->DescriptorSize; i++)
+    for (UINTN i = 0; i < count; i++)
     {
-
-        pages += desc->NumberOfPages;
-        bytes += desc->NumberOfPages * 4096;
+        if (desc->Type == type)
+            bytes += desc->NumberOfPages * 4096;
 
         desc = (EFI_MEMORY_DESCRIPTOR *)((CHAR8 *)desc + mem_map->DescriptorSize);
     }
 
-    LOG_INFO("Total memory: %s", convert(bytes));
+    return bytes;
 }
 
 EFI_STATUS get_memory_map(EFI_SYSTEM_TABLE *SystemTable, PMEMORY_MAP *mem_map)
@@ -183,4 +147,78 @@ cleanup:
     }
 
     return Status;
+}
+
+void free_mem_map(EFI_SYSTEM_TABLE *SystemTable, PMEMORY_MAP *mem_map)
+{
+    if (mem_map != NULL && *mem_map != NULL)
+    {
+        if ((*mem_map)->MemoryMap != NULL)
+        {
+            free_pool(SystemTable, (*mem_map)->MemoryMap);
+            (*mem_map)->MemoryMap = NULL;
+        }
+
+        free_pool(SystemTable, *mem_map);
+        *mem_map = NULL;
+    }
+}
+
+void check_memory_leak(EFI_SYSTEM_TABLE *SystemTable, MemoryLeakContext *ctx, BOOLEAN probe)
+{
+    EFI_STATUS Status;
+    PMEMORY_MAP mem_map = NULL;
+    UINTN bytes = 0;
+
+    if (SystemTable == NULL || ctx == NULL)
+        return;
+
+    Status = get_memory_map(SystemTable, &mem_map);
+    if (EFI_ERROR(Status) || mem_map == NULL)
+        return;
+
+    bytes = get_total_memory_by_type(mem_map, EfiConventionalMemory);
+    free_mem_map(SystemTable, &mem_map);
+
+    if (ctx->baseline_bytes == 0)
+    {
+        ctx->baseline_bytes = bytes;
+        ctx->prev_bytes = bytes;
+        return;
+    }
+
+    if (probe)
+    {
+        INTN delta_prev = (INTN)bytes - (INTN)ctx->prev_bytes;
+        INTN delta_baseline = (INTN)bytes - (INTN)ctx->baseline_bytes;
+
+        CHAR16 *baseline_str = convert_bytes_to_string(ctx->baseline_bytes);
+        CHAR16 *prev_str = convert_bytes_to_string(ctx->prev_bytes);
+        CHAR16 *bytes_str = convert_bytes_to_string(bytes);
+        CHAR16 *delta_prev_str = convert_bytes_to_string(delta_prev < 0 ? (UINTN)(-delta_prev) : (UINTN)delta_prev);
+        CHAR16 *delta_baseline_str = convert_bytes_to_string(delta_baseline < 0 ? (UINTN)(-delta_baseline) : (UINTN)delta_baseline);
+
+        Print(
+            L"Memory Leak Check\r\n\n\n"
+            L"Baseline: %s\r\n"
+            L"Previous: %s\r\n"
+            L"Current : %s\r\n\n"
+            L"Delta (Previous): %s%s\r\n"
+            L"Delta (Baseline): %s%s\r\n\n",
+            baseline_str ? baseline_str : L"(null)",
+            prev_str ? prev_str : L"(null)",
+            bytes_str ? bytes_str : L"(null)",
+            delta_prev < 0 ? L"-" : L"+",
+            delta_prev_str ? delta_prev_str : L"(null)",
+            delta_baseline < 0 ? L"-" : L"+",
+            delta_baseline_str ? delta_baseline_str : L"(null)");
+
+        free_pool(SystemTable, baseline_str);
+        free_pool(SystemTable, prev_str);
+        free_pool(SystemTable, bytes_str);
+        free_pool(SystemTable, delta_prev_str);
+        free_pool(SystemTable, delta_baseline_str);
+    }
+
+    ctx->prev_bytes = bytes;
 }
