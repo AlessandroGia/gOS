@@ -21,18 +21,6 @@ void show_memory_menu(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable, Mem
     run_menu(ImageHandle, SystemTable, L"Memory", menu_entries, sizeof(menu_entries) / sizeof(menu_entries[0]), TRUE, 20);
 }
 
-static void trash_memory(EFI_SYSTEM_TABLE *SystemTable)
-{
-    VOID *ptr = NULL;
-    EFI_STATUS Status = EFI_SUCCESS;
-
-    Status = uefi_call_wrapper(SystemTable->BootServices->AllocatePool, 3, EfiLoaderData, 1024 * 1024, (VOID **)&ptr);
-    if (EFI_ERROR(Status))
-        return;
-
-    // Intentionally not freeing the allocated memory to simulate a leak
-}
-
 EFI_STATUS action_check_memory_leak(
     EFI_HANDLE ImageHandle,
     EFI_SYSTEM_TABLE *SystemTable,
@@ -40,7 +28,6 @@ EFI_STATUS action_check_memory_leak(
 {
     MemoryLeakContext *ctx = (MemoryLeakContext *)context;
     check_memory_leak(SystemTable, ctx, TRUE);
-    trash_memory(SystemTable);
     Print(L"\r\nPress Enter to continue...");
     wait_for_enter(SystemTable);
 

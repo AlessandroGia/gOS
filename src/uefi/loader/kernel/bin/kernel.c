@@ -6,18 +6,59 @@
 #include "uefi/common/helper/helper.h"
 #include "uefi/common/log/log.h"
 
-void copy_kernel_to_address(
-    VOID *kernel_buffer,
-    UINTN kernel_size,
-    VOID *destination)
+static EFI_STATUS allocate_kernel_pages(
+    EFI_SYSTEM_TABLE *SystemTable,
+    EFI_PHYSICAL_ADDRESS *destination,
+    UINTN kernel_size)
 {
+
+    EFI_STATUS Status;
+    Status = uefi_call_wrapper(
+        SystemTable->BootServices->AllocatePages, 4,
+        AllocateAddress,
+        EfiLoaderData,
+        EFI_SIZE_TO_PAGES(kernel_size),
+        destination);
+    if (EFI_ERROR(Status))
+    {
+        LOG_ERROR("Failed to allocate pages for kernel: %r", Status);
+        return Status;
+    }
+
+    return EFI_SUCCESS;
+}
+
+static void copy_kernel_to_address(
+    EFI_PHYSICAL_ADDRESS *destination,
+    UINTN kernel_size,
+    VOID *kernel_buffer)
+{
+
     CHAR8 *src = (CHAR8 *)kernel_buffer;
-    CHAR8 *dst = (CHAR8 *)destination;
+    CHAR8 *dst = (CHAR8 *)(*destination);
 
     for (UINTN i = 0; i < kernel_size; i++)
     {
         dst[i] = src[i];
     }
+}
+
+EFI_STATUS load_kernel_to_address(
+    EFI_SYSTEM_TABLE *SystemTable,
+    EFI_PHYSICAL_ADDRESS *destination,
+    UINTN kernel_size,
+    VOID *kernel_buffer)
+{
+    EFI_STATUS Status;
+
+    Status = allocate_kernel_pages(SystemTable, destination, kernel_size);
+    if (EFI_ERROR(Status))
+    {
+        LOG_ERROR(L"Failed to allocate pages for kernel: %r", Status);
+        return Status;
+    }
+    copy_kernel_to_address(destination, kernel_size, kernel_buffer);
+    return EFI_SUCCESS;
 }
 
 EFI_STATUS load_kernel_file(

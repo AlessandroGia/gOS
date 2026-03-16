@@ -22,8 +22,8 @@ EFIMAIN efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     EFI_STATUS Status;
     VOID *KernelBuffer = NULL;
     UINTN KernelSize = 0;
-    PMEMORY_MAP mem_map = NULL;
     BootInfo BootInfoData = {0};
+    EFI_PHYSICAL_ADDRESS KernelDestination = KERNEL_LOAD_ADDRESS;
 
     InitializeLib(ImageHandle, SystemTable);
 
@@ -46,17 +46,16 @@ EFIMAIN efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     }
     LOG_INFO(L"Kernel loaded successfully. Size: %d bytes", KernelSize);
 
-    copy_kernel_to_address(KernelBuffer, KernelSize, (VOID *)KERNEL_LOAD_ADDRESS);
-    LOG_INFO(L"Kernel copied to 0x100000.");
-
-    if (EFI_ERROR(get_memory_map(SystemTable, &mem_map)))
+    Status = load_kernel_to_address(SystemTable, &KernelDestination, KernelSize, KernelBuffer);
+    if (EFI_ERROR(Status))
     {
-        LOG_ERROR("Memory map retrieval failed.");
+        LOG_ERROR("Failed to load kernel to address: %r", Status);
         goto cleanup;
     }
+    LOG_INFO(L"Kernel copied to 0x%lx.", (UINTN)KernelDestination);
 
-    exit_boot_services_with_retry(ImageHandle, SystemTable, &mem_map, &BootInfoData);
-    jump_to_kernel((VOID *)KERNEL_LOAD_ADDRESS, &BootInfoData);
+    exit_boot_services_with_retry(ImageHandle, SystemTable, &BootInfoData);
+    jump_to_kernel(KernelDestination, &BootInfoData);
 
     for (;;)
     {
@@ -66,15 +65,6 @@ EFIMAIN efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     return EFI_SUCCESS;
 
 cleanup:
-    if (mem_map)
-    {
-        if (mem_map->MemoryMap)
-        {
-            free_pool(SystemTable, mem_map->MemoryMap);
-            mem_map->MemoryMap = NULL;
-        }
-        free_pool(SystemTable, mem_map);
-    }
     if (KernelBuffer)
         free_pool(SystemTable, KernelBuffer);
 

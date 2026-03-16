@@ -9,9 +9,10 @@ EFI_STATUS load_kernel_file(
     VOID **kernel_buffer,
     UINTN *kernel_size);
 
-void copy_kernel_to_address(
-    VOID *kernel_buffer,
+EFI_STATUS load_kernel_to_address(
+    EFI_SYSTEM_TABLE *SystemTable,
+    EFI_PHYSICAL_ADDRESS *destination,
     UINTN kernel_size,
-    VOID *destination);
+    VOID *kernel_buffer);
 
 #endif
