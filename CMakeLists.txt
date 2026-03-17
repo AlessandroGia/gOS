@@ -119,9 +119,15 @@ set(CFLAGS_KERNEL
 )
 
 set(SRC_KERNEL ${CMAKE_SOURCE_DIR}/kernel/kernel.c)
+set(SRC_KERNEL_ASM ${CMAKE_SOURCE_DIR}/kernel/entry.S)
+
 set(OBJ_KERNEL ${CMAKE_BINARY_DIR}/kernel.o)
+set(OBJ_KERNEL_ASM ${CMAKE_BINARY_DIR}/entry.o)
+
 set(ELF_KERNEL ${CMAKE_BINARY_DIR}/kernel.elf)
 set(BIN_KERNEL ${CMAKE_BINARY_DIR}/kernel.bin)
+
+enable_language(ASM)
 
 add_custom_command(
     OUTPUT ${OBJ_KERNEL}
@@ -134,13 +140,25 @@ add_custom_command(
 )
 
 add_custom_command(
+    OUTPUT ${OBJ_KERNEL_ASM}
+    COMMAND gcc
+            -ffreestanding
+            -mno-red-zone
+            -c ${SRC_KERNEL_ASM}
+            -o ${OBJ_KERNEL_ASM}
+    DEPENDS ${SRC_KERNEL_ASM}
+    VERBATIM
+)
+
+add_custom_command(
     OUTPUT ${ELF_KERNEL}
     COMMAND ld
             -nostdlib
             -T ${CMAKE_SOURCE_DIR}/linker/kernel.ld
+            ${OBJ_KERNEL_ASM}
             ${OBJ_KERNEL}
             -o ${ELF_KERNEL}
-    DEPENDS ${OBJ_KERNEL} ${CMAKE_SOURCE_DIR}/linker/kernel.ld
+    DEPENDS ${OBJ_KERNEL_ASM} ${OBJ_KERNEL} ${CMAKE_SOURCE_DIR}/linker/kernel.ld
     VERBATIM
 )
 

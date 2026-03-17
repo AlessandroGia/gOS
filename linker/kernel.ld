@@ -1,23 +1,33 @@
-ENTRY(kernel_main)
+ENTRY(_start)
+
+PHDRS
+{
+    text PT_LOAD FLAGS(5);   /* R + X */
+    data PT_LOAD FLAGS(6);   /* R + W */
+}
 
 SECTIONS
 {
-    . = 1M;
+    . = 0x100000;
 
-    .text : {
+    .text : ALIGN(4K)
+    {
         *(.text*)
-    }
+    } :text
 
-    .rodata : {
+    .rodata : ALIGN(4K)
+    {
         *(.rodata*)
-    }
+    } :text
 
-    .data : {
+    .data : ALIGN(4K)
+    {
         *(.data*)
-    }
+    } :data
 
-    .bss : {
+    .bss : ALIGN(4K)
+    {
         *(.bss*)
         *(COMMON)
-    }
+    } :data
 }
