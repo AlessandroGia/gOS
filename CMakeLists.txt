@@ -12,27 +12,38 @@ function(add_uefi_app target_name output_name)
     set(obj_files "")
     set(all_sources ${ARGN})
 
+    set(obj_dir "${CMAKE_BINARY_DIR}/obj/${target_name}")
+    file(MAKE_DIRECTORY "${obj_dir}")
+
     foreach(source_file IN LISTS all_sources)
-        get_filename_component(source_name ${source_file} NAME_WE)
-        set(obj_file ${CMAKE_BINARY_DIR}/${target_name}_${source_name}.o)
+        file(RELATIVE_PATH rel_source "${CMAKE_SOURCE_DIR}" "${source_file}")
+        get_filename_component(source_ext "${source_file}" LAST_EXT)
+
+        set(obj_stem "${rel_source}")
+        string(REPLACE "/" "_" obj_stem "${obj_stem}")
+        string(REPLACE "\\" "_" obj_stem "${obj_stem}")
+        string(REPLACE "${source_ext}" "" obj_stem "${obj_stem}")
+
+        set(obj_file "${obj_dir}/${obj_stem}.o")
 
         add_custom_command(
             OUTPUT ${obj_file}
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${obj_dir}"
             COMMAND gcc
-                    -ffreestanding
-                    -fno-stack-protector
-                    -fpic
-                    -fshort-wchar
-                    -mno-red-zone
-                    -Wall
-                    -Wextra
-                    -I${CMAKE_SOURCE_DIR}
-                    -I${CMAKE_SOURCE_DIR}/src
-                    -I${GNUEFI_INC}
-                    -I${GNUEFI_INC_ARCH}
-                    -I${GNUEFI_INC_PROTO}
-                    -c ${source_file}
-                    -o ${obj_file}
+                -ffreestanding
+                -fno-stack-protector
+                -fpic
+                -fshort-wchar
+                -mno-red-zone
+                -Wall
+                -Wextra
+                -I${CMAKE_SOURCE_DIR}
+                -I${CMAKE_SOURCE_DIR}/src
+                -I${GNUEFI_INC}
+                -I${GNUEFI_INC_ARCH}
+                -I${GNUEFI_INC_PROTO}
+                -c ${source_file}
+                -o ${obj_file}
             DEPENDS ${source_file}
             VERBATIM
         )
@@ -40,31 +51,38 @@ function(add_uefi_app target_name output_name)
         list(APPEND obj_files ${obj_file})
     endforeach()
 
-    set(efi_file ${CMAKE_BINARY_DIR}/${output_name})
-    set(so_file  ${CMAKE_BINARY_DIR}/${target_name}.so)
+    set(so_dir "${CMAKE_BINARY_DIR}/so")
+    set(efi_dir "${CMAKE_BINARY_DIR}/efi")
+    file(MAKE_DIRECTORY "${so_dir}")
+    file(MAKE_DIRECTORY "${efi_dir}")
+
+    set(so_file "${so_dir}/${target_name}.so")
+    set(efi_file "${efi_dir}/${output_name}")
 
     add_custom_command(
         OUTPUT ${so_file}
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${so_dir}"
         COMMAND gcc
-                -nostdlib
-                -Wl,-znocombreloc
-                -Wl,-T,/usr/lib/elf_x86_64_efi.lds
-                -shared
-                -fshort-wchar
-                -Wl,-Bsymbolic
-                -Wl,--defsym=EFI_SUBSYSTEM=10
-                /usr/lib/crt0-efi-x86_64.o
-                ${obj_files}
-                -o ${so_file}
-                -L/usr/lib
-                -lefi
-                -lgnuefi
+            -nostdlib
+            -Wl,-znocombreloc
+            -Wl,-T,/usr/lib/elf_x86_64_efi.lds
+            -shared
+            -fshort-wchar
+            -Wl,-Bsymbolic
+            -Wl,--defsym=EFI_SUBSYSTEM=10
+            /usr/lib/crt0-efi-x86_64.o
+            ${obj_files}
+            -o ${so_file}
+            -L/usr/lib
+            -lefi
+            -lgnuefi
         DEPENDS ${obj_files}
         VERBATIM
     )
 
     add_custom_command(
         OUTPUT ${efi_file}
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${efi_dir}"
         COMMAND objcopy
             -j .text
             -j .sdata
