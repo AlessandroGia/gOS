@@ -13,8 +13,15 @@ function(add_uefi_app target_name output_name)
     set(all_sources ${ARGN})
 
     foreach(source_file IN LISTS all_sources)
-        get_filename_component(source_name ${source_file} NAME_WE)
-        set(obj_file ${CMAKE_BINARY_DIR}/${target_name}_${source_name}.o)
+        file(RELATIVE_PATH rel_source "${CMAKE_SOURCE_DIR}" "${source_file}")
+get_filename_component(source_ext "${source_file}" LAST_EXT)
+
+set(obj_stem "${rel_source}")
+string(REPLACE "/" "_" obj_stem "${obj_stem}")
+string(REPLACE "\\" "_" obj_stem "${obj_stem}")
+string(REPLACE "${source_ext}" "" obj_stem "${obj_stem}")
+
+set(obj_file "${CMAKE_BINARY_DIR}/${target_name}_${obj_stem}.o")
 
         add_custom_command(
             OUTPUT ${obj_file}
