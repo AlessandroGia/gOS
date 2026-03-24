@@ -135,3 +135,13 @@ uint64_t early_allocator_remaining(void)
 
     return g_early_end - g_early_current;
 }
+
+uint64_t early_allocator_base(void)
+{
+    return g_early_base;
+}
+
+uint64_t early_allocator_current(void)
+{
+    return g_early_current;
+}

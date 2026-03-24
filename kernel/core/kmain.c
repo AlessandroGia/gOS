@@ -11,6 +11,20 @@
 
 #include "lib/kmemory.h"
 
+static MemoryRegionInfo build_early_allocator_region(const MemoryInfo *memory_info)
+{
+    MemoryRegionInfo region;
+
+    uint64_t base = early_allocator_base();
+    uint64_t max_size = memory_info->largest_usable_region_size;
+    uint64_t wanted_size = 4ULL * 1024ULL * 1024ULL;
+
+    region.base = (void *)base;
+    region.size = (max_size < wanted_size) ? max_size : wanted_size;
+
+    return region;
+}
+
 static void kernel_halt(void)
 {
     for (;;)
@@ -73,6 +87,8 @@ void kernel_main(BootInfo *boot_info)
 
     early_allocator_init(memory_info, &reserved_info);
 
+    MemoryRegionInfo early_region = build_early_allocator_region(memory_info);
+
     PageTable pml4 = paging_alloc_table();
 
     if (pml4 == 0)
@@ -93,11 +109,17 @@ void kernel_main(BootInfo *boot_info)
     map_region_or_panic(pml4, "memory_map_region", boot_info->memory_map_region, PAGE_PRESENT | PAGE_WRITABLE);
     map_region_or_panic(pml4, "framebuffer_region", boot_info->framebuffer_region, PAGE_PRESENT | PAGE_WRITABLE);
 
+    map_region_or_panic(pml4, "early_allocator", early_region, PAGE_PRESENT | PAGE_WRITABLE);
+
     console_write("Paging regions mapped.\n");
 
     console_write("pml4: 0x");
     console_write_hex_u64((uint64_t)pml4);
     console_putc('\n');
+
+    console_write("Loading new PML4...\n");
+    paging_load_pml4(pml4);
+    console_write("New PML4 loaded.\n");
 
     panic_halt();
 

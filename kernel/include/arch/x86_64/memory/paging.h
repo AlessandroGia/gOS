@@ -32,6 +32,8 @@ typedef PageTableEntry *PageTable;
 
 PageTable paging_alloc_table(void);
 
+void paging_load_pml4(PageTable pml4);
+
 void paging_set_entry(PageTableEntry *entry, uint64_t physical_address, uint64_t flags);
 uint64_t paging_get_entry_address(PageTableEntry entry);
 int paging_entry_present(PageTableEntry entry);

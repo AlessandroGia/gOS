@@ -6,6 +6,20 @@
 
 PageTable *g_pml4_table = 0;
 
+void paging_load_pml4(PageTable pml4)
+{
+    if (pml4 == 0)
+    {
+        return;
+    }
+
+    __asm__ __volatile__(
+        "mov %0, %%cr3"
+        :
+        : "r"((uint64_t)pml4)
+        : "memory");
+}
+
 PageTable paging_alloc_table(void)
 {
     PageTable table = (PageTable)early_alloc(PAGE_SIZE, PAGE_SIZE);
