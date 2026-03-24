@@ -12,7 +12,7 @@ EFI_STATUS clear_screen(EFI_SYSTEM_TABLE *SystemTable)
     status = uefi_call_wrapper(SystemTable->ConOut->ClearScreen, 1, SystemTable->ConOut);
     if (EFI_ERROR(status))
     {
-        log_error(L"Failed to clear screen: %r", status);
+        LOG_ERROR(L"Failed to clear screen: %r", status);
         return status;
     }
     return EFI_SUCCESS;

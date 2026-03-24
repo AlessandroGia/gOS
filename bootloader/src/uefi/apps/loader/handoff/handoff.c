@@ -3,6 +3,7 @@
 #include "uefi/apps/loader/handoff/handoff.h"
 
 #include "shared/bootinfo.h"
+#include "shared/gc_kernel_format.h"
 
 #include "uefi/common/memory/memory.h"
 #include "uefi/common/log/log.h"
@@ -23,9 +24,9 @@ EFI_STATUS exit_boot_services_with_retry(
         LOG_ERROR(L"Memory map retrieval failed during retry.");
         return EFI_LOAD_ERROR;
     }
-    boot_info->memory_map = mem_map->MemoryMap;
-    boot_info->memory_map_size = mem_map->MemoryMapSize;
-    boot_info->memory_map_descriptor_size = mem_map->DescriptorSize;
+    boot_info->memory_map.base = mem_map->MemoryMap;
+    boot_info->memory_map.size = mem_map->MemoryMapSize;
+    boot_info->memory_map.descriptor_size = mem_map->DescriptorSize;
 
     Status = uefi_call_wrapper(
         SystemTable->BootServices->ExitBootServices,
@@ -43,9 +44,9 @@ EFI_STATUS exit_boot_services_with_retry(
             return EFI_LOAD_ERROR;
         }
 
-        boot_info->memory_map = mem_map->MemoryMap;
-        boot_info->memory_map_size = mem_map->MemoryMapSize;
-        boot_info->memory_map_descriptor_size = mem_map->DescriptorSize;
+        boot_info->memory_map.base = mem_map->MemoryMap;
+        boot_info->memory_map.size = mem_map->MemoryMapSize;
+        boot_info->memory_map.descriptor_size = mem_map->DescriptorSize;
 
         Status = uefi_call_wrapper(
             SystemTable->BootServices->ExitBootServices,
@@ -57,10 +58,10 @@ EFI_STATUS exit_boot_services_with_retry(
 }
 
 void jump_to_kernel(
-    EFI_PHYSICAL_ADDRESS kernel_entry_point,
+    EFI_PHYSICAL_ADDRESS KernelDestination,
     BootInfo *boot_info)
 {
     typedef void (*KernelEntryPoint)(BootInfo *);
-    KernelEntryPoint entry = (KernelEntryPoint)(UINTN)kernel_entry_point;
-    entry(boot_info);
+    KernelEntryPoint kernel_entry = (KernelEntryPoint)(UINTN)(KernelDestination);
+    kernel_entry(boot_info);
 }

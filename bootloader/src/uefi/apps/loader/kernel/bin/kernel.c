@@ -1,6 +1,8 @@
 #include <efi/efi.h>
 #include <efi/efilib.h>
 
+#include "shared/gc_kernel_format.h"
+
 #include "uefi/apps/loader/kernel/bin/kernel.h"
 
 #include "uefi/common/helper/helper.h"
@@ -43,21 +45,114 @@ static void copy_kernel_to_address(
     }
 }
 
+static void zero_memory_at_address(
+    EFI_PHYSICAL_ADDRESS *destination,
+    UINTN size)
+{
+    CHAR8 *dst = (CHAR8 *)(*destination);
+
+    for (UINTN i = 0; i < size; i++)
+    {
+        dst[i] = 0;
+    }
+}
+
 EFI_STATUS load_kernel_to_address(
     EFI_SYSTEM_TABLE *SystemTable,
     EFI_PHYSICAL_ADDRESS *destination,
     UINTN kernel_size,
+    UINTN kernel_memory_size,
     VOID *kernel_buffer)
 {
     EFI_STATUS Status;
 
-    Status = allocate_kernel_pages(SystemTable, destination, kernel_size);
+    Status = allocate_kernel_pages(SystemTable, destination, kernel_memory_size);
     if (EFI_ERROR(Status))
     {
         LOG_ERROR(L"Failed to allocate pages for kernel: %r", Status);
         return Status;
     }
     copy_kernel_to_address(destination, kernel_size, kernel_buffer);
+    EFI_PHYSICAL_ADDRESS zero_start = *destination + kernel_size;
+    zero_memory_at_address(&zero_start, kernel_memory_size - kernel_size);
+    return EFI_SUCCESS;
+}
+
+EFI_STATUS validate_kernel_header(
+    const HeaderGC *hdr,
+    UINTN file_size)
+{
+
+    if (hdr == NULL)
+    {
+        return EFI_INVALID_PARAMETER;
+    }
+
+    if (file_size < sizeof(HeaderGC))
+    {
+        return EFI_LOAD_ERROR;
+    }
+
+    if (hdr->magic != GC_MAGIC)
+    {
+        Print(L"[loader] Invalid kernel magic\n");
+        return EFI_LOAD_ERROR;
+    }
+
+    if (hdr->version != GC_VERSION)
+    {
+        Print(L"[loader] Unsupported kernel format version: %u\n", hdr->version);
+        return EFI_UNSUPPORTED;
+    }
+
+    if (hdr->header_size < sizeof(HeaderGC))
+    {
+        Print(L"[loader] Invalid header_size\n");
+        return EFI_LOAD_ERROR;
+    }
+
+    if (hdr->header_size > file_size)
+    {
+        Print(L"[loader] header_size larger than file size\n");
+        return EFI_LOAD_ERROR;
+    }
+
+    if (hdr->payload_file_size > hdr->kernel_memory_size)
+    {
+        Print(L"[loader] payload_file_size larger than kernel_memory_size\n");
+        return EFI_LOAD_ERROR;
+    }
+
+    if ((UINT64)file_size < (UINT64)hdr->header_size)
+    {
+        Print(L"[loader] File smaller than header\n");
+        return EFI_LOAD_ERROR;
+    }
+
+    if ((UINT64)file_size < (UINT64)hdr->header_size + hdr->payload_file_size)
+    {
+        Print(L"[loader] File smaller than declared image_size\n");
+        return EFI_LOAD_ERROR;
+    }
+
+    if (hdr->kernel_address == 0)
+    {
+        Print(L"[loader] Invalid load_addr\n");
+        return EFI_LOAD_ERROR;
+    }
+
+    if (hdr->payload_file_size == 0)
+    {
+        Print(L"[loader] Invalid image_size\n");
+        return EFI_LOAD_ERROR;
+    }
+
+    if (hdr->entry_point_offset >= hdr->payload_file_size)
+    {
+        Print(L"[loader] entry_offset outside image\n");
+        return EFI_LOAD_ERROR;
+    }
+
     return EFI_SUCCESS;
 }
 
@@ -121,7 +216,7 @@ EFI_STATUS load_kernel_file(
         Root->Open, 5,
         Root,
         &KernelFile,
-        L"\\kernel.bin",
+        L"\\kernel.GC",
         EFI_FILE_MODE_READ,
         0);
     if (EFI_ERROR(Status))

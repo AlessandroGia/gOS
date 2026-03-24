@@ -3,6 +3,7 @@
 #include <efi/efiprot.h>
 
 #include "shared/bootinfo.h"
+#include "shared/gc_kernel_format.h"
 
 #include "uefi/common/memory/memory.h"
 #include "uefi/common/helper/helper.h"
@@ -12,50 +13,86 @@
 #include "uefi/apps/loader/kernel/bin/kernel.h"
 #include "uefi/apps/loader/handoff/handoff.h"
 
-#define KERNEL_LOAD_ADDRESS 0x100000
-
 typedef EFI_STATUS EFIAPI EFIMAIN;
 typedef void (*KernelEntry)(BootInfo *boot_info);
 
 EFIMAIN efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 {
-    EFI_STATUS Status;
-    VOID *KernelBuffer = NULL;
-    UINTN KernelSize = 0;
-    BootInfo BootInfoData = {0};
-    EFI_PHYSICAL_ADDRESS KernelDestination = KERNEL_LOAD_ADDRESS;
+    EFI_STATUS status;
+    BootInfo boot_info_data = {0};
+    VOID *kernel_file_buffer = NULL;
+    VOID *kernel_raw_buffer = NULL;
+    EFI_PHYSICAL_ADDRESS kernel_destination = 0;
+    UINTN kernel_size = 0;
+    HeaderGC *hdr;
 
     InitializeLib(ImageHandle, SystemTable);
 
-    Status = get_framebuffer_info(SystemTable, &BootInfoData);
-    if (EFI_ERROR(Status))
+    status = get_framebuffer_info(SystemTable, &boot_info_data);
+    if (EFI_ERROR(status))
     {
-        LOG_ERROR("Framebuffer setup failed.");
+        LOG_ERROR(L"[loader] Framebuffer setup failed.");
         goto cleanup;
     }
     LOG_INFO(
-        L"GOP ok: %ux%u",
-        BootInfoData.framebuffer_width,
-        BootInfoData.framebuffer_height);
+        L"[loader] GOP ok: %ux%u",
+        boot_info_data.framebuffer.width,
+        boot_info_data.framebuffer.height);
 
-    Status = load_kernel_file(ImageHandle, SystemTable, &KernelBuffer, &KernelSize);
-    if (EFI_ERROR(Status))
+    status = load_kernel_file(ImageHandle, SystemTable, &kernel_file_buffer, &kernel_size);
+    if (EFI_ERROR(status))
     {
-        LOG_ERROR("Kernel load failed.");
+        LOG_ERROR(L"[loader] Kernel load failed.");
         goto cleanup;
     }
-    LOG_INFO(L"Kernel loaded successfully. Size: %d bytes", KernelSize);
+    hdr = (HeaderGC *)kernel_file_buffer;
 
-    Status = load_kernel_to_address(SystemTable, &KernelDestination, KernelSize, KernelBuffer);
-    if (EFI_ERROR(Status))
+    LOG_INFO(L"[loader] Kernel file loaded successfully. Size: %d bytes", kernel_size);
+
+    status = validate_kernel_header(hdr, kernel_size);
+    if (EFI_ERROR(status))
     {
-        LOG_ERROR("Failed to load kernel to address: %r", Status);
+        LOG_ERROR(L"[loader] Kernel header validation failed.");
         goto cleanup;
     }
-    LOG_INFO(L"Kernel copied to 0x%lx.", (UINTN)KernelDestination);
 
-    exit_boot_services_with_retry(ImageHandle, SystemTable, &BootInfoData);
-    jump_to_kernel(KernelDestination, &BootInfoData);
+    LOG_INFO(L"[loader] Kernel header, Size: %d bytes; Payload raw, Size: %d bytes, Memory Size: %d bytes", hdr->header_size, hdr->payload_file_size, hdr->kernel_memory_size);
+
+    kernel_destination = hdr->kernel_address + hdr->entry_point_offset;
+    kernel_raw_buffer = (CHAR8 *)kernel_file_buffer + hdr->header_size;
+
+    status = load_kernel_to_address(SystemTable, &kernel_destination, hdr->payload_file_size, hdr->kernel_memory_size, kernel_raw_buffer);
+    Print(L"a");
+    if (EFI_ERROR(status))
+    {
+        LOG_ERROR(L"[loader] Failed to load kernel to address: %r", status);
+        goto cleanup;
+    }
+    LOG_INFO(L"[loader] Kernel copied to 0x%lx.", (UINTN)kernel_destination);
+    LOG_INFO(L"[loader] Kernel entry point: 0x%lx", (UINTN)kernel_destination);
+
+    status = exit_boot_services_with_retry(ImageHandle, SystemTable, &boot_info_data);
+    if (EFI_ERROR(status))
+    {
+        LOG_ERROR(L"[loader] Failed to exit boot services: %r", status);
+        goto cleanup;
+    }
+
+    boot_info_data.kernel_image_region.base = (void *)kernel_destination;
+    boot_info_data.kernel_image_region.size = hdr->kernel_memory_size;
+
+    boot_info_data.boot_info_region.base = &boot_info_data;
+    boot_info_data.boot_info_region.size = sizeof(boot_info_data);
+
+    boot_info_data.memory_map_region.base = boot_info_data.memory_map.base;
+    boot_info_data.memory_map_region.size = boot_info_data.memory_map.size;
+
+    boot_info_data.framebuffer_region.base = boot_info_data.framebuffer.base;
+    boot_info_data.framebuffer_region.size = (uint64_t)boot_info_data.framebuffer.pixels_per_scanline *
+                                             (uint64_t)boot_info_data.framebuffer.height *
+                                             sizeof(uint32_t);
+
+    jump_to_kernel(kernel_destination, &boot_info_data);
 
     for (;;)
     {
@@ -65,8 +102,10 @@ EFIMAIN efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     return EFI_SUCCESS;
 
 cleanup:
-    if (KernelBuffer)
-        free_pool(SystemTable, KernelBuffer);
+    if (kernel_file_buffer)
+        free_pool(SystemTable, kernel_file_buffer);
+    if (kernel_raw_buffer)
+        free_pool(SystemTable, kernel_raw_buffer);
 
-    return Status;
+    return status;
 }

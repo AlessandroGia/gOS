@@ -5,6 +5,7 @@
             "includePath": [
                 "${workspaceFolder}",
                 "${workspaceFolder}/bootloader/include",
+                "${workspaceFolder}/kernel/include",
                 "/usr/include",
                 "/usr/include/efi",
                 "/usr/include/efi/x86_64",

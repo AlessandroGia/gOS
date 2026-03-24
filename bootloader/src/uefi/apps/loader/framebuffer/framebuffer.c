@@ -27,16 +27,16 @@ EFI_STATUS get_framebuffer_info(
         return Status;
     }
 
-    boot_info->framebuffer_base =
+    boot_info->framebuffer.base =
         (VOID *)Gop->Mode->FrameBufferBase;
 
-    boot_info->framebuffer_width =
+    boot_info->framebuffer.width =
         Gop->Mode->Info->HorizontalResolution;
 
-    boot_info->framebuffer_height =
+    boot_info->framebuffer.height =
         Gop->Mode->Info->VerticalResolution;
 
-    boot_info->framebuffer_pixels_per_scanline =
+    boot_info->framebuffer.pixels_per_scanline =
         Gop->Mode->Info->PixelsPerScanLine;
 
     return EFI_SUCCESS;

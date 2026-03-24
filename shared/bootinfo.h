@@ -6,14 +6,34 @@
 
 typedef struct
 {
-    void *framebuffer_base;
-    uint32_t framebuffer_width;
-    uint32_t framebuffer_height;
-    uint32_t framebuffer_pixels_per_scanline;
+    void *base;
+    uint32_t width;
+    uint32_t height;
+    uint32_t pixels_per_scanline;
+} FramebufferInfo;
 
-    void *memory_map;
-    uint64_t memory_map_size;
-    uint64_t memory_map_descriptor_size;
+typedef struct
+{
+    void *base;
+    uint64_t size;
+    uint64_t descriptor_size;
+} MemoryMapInfo;
+
+typedef struct
+{
+    void *base;
+    uint64_t size;
+} MemoryRegionInfo;
+
+typedef struct
+{
+    FramebufferInfo framebuffer;
+    MemoryMapInfo memory_map;
+
+    MemoryRegionInfo kernel_image_region;
+    MemoryRegionInfo boot_info_region;
+    MemoryRegionInfo memory_map_region;
+    MemoryRegionInfo framebuffer_region;
 } BootInfo;
 
 #endif

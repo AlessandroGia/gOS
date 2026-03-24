@@ -4,5 +4,6 @@ project(gOS C ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+add_subdirectory(tools)
 add_subdirectory(bootloader)
 add_subdirectory(kernel)

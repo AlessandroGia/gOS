@@ -6,6 +6,7 @@ cp build/bootloader/efi/BootX64.efi testfs/EFI/BOOT/BootX64.efi
 cp build/bootloader/efi/OsLoader.efi testfs/EFI/BOOT/OsLoader.efi
 
 cp build/kernel/bin/kernel.bin testfs/kernel.bin
+cp build/kernel/gc/kernel.GC testfs/kernel.GC
 
 qemu-system-x86_64 \
   -machine q35 \

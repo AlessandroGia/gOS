@@ -13,6 +13,11 @@ EFI_STATUS load_kernel_to_address(
     EFI_SYSTEM_TABLE *SystemTable,
     EFI_PHYSICAL_ADDRESS *destination,
     UINTN kernel_size,
+    UINTN kernel_memory_size,
     VOID *kernel_buffer);
+
+EFI_STATUS validate_kernel_header(
+    const HeaderGC *hdr,
+    UINTN file_size);
 
 #endif
